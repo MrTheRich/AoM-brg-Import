@@ -20,8 +20,8 @@ bl_info = {
     "name": "Age of Mythology Model",
     "description": "Import/Export .brg model files for the game Age of Mythology",
     "author": "Matthijs 'MrEmjeR' de Rijk <mrtherich@gmail.com>",
-    "version": (0, 2, 0),
-    "blender": (2, 7, 5),
+    "version": (0, 3, 0),
+    "blender": (2, 80, 0),
     "warning": "",
     "location": "File > Import-Export",
     "wiki_url": "https://github.com/MrTheRich/AoM-Blender-Addon/wiki",
@@ -40,6 +40,8 @@ from bpy.props import *
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 from bpy.types import Operator, AddonPreferences
 from bpy.props import StringProperty, IntProperty, BoolProperty
+
+
 
 # addon preferences in blender user preferences
 class AoMPreferences(AddonPreferences):
@@ -98,7 +100,7 @@ class IMPORT_BRG(bpy.types.Operator, ImportHelper):
             )
 
     def execute(self, context):
-        preferences = context.user_preferences
+        preferences = context.preferences
         addon_prefs = preferences.addons[__name__].preferences
         importer = brg_import.BRGImporter(context, self, addon_prefs)
 
@@ -189,17 +191,26 @@ def menu_func_import(self, context):
 def menu_func_export(self, context):
     self.layout.operator(EXPORT_BRG.bl_idname, text="Age of Mythology (.brg)")
 
+
+__to_be_registered = [
+    AoMPreferences,
+    IMPORT_BRG,
+    EXPORT_BRG
+]
+
 def register():
-    bpy.utils.register_module(__name__)
+    for cls in __to_be_registered:
+        bpy.utils.register_class(cls)
     reload_scripts()
     os.system('cls') # clear the cmd, temponary for debug
-    bpy.types.INFO_MT_file_import.append(menu_func_import)
-    bpy.types.INFO_MT_file_export.append(menu_func_export)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
-    bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    bpy.types.INFO_MT_file_export.remove(menu_func_export)
+    for cls in __to_be_registered:
+        bpy.utils.unregister_class(cls)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 
 def reload_scripts(): # reload all subscripts when reloading main script
     reload(brg_util)
