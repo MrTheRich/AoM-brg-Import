@@ -282,6 +282,7 @@ class BRGImporter:
 
         if hasattr(self, 'frames'):
             bpy.ops.pose.select_all(action='SELECT')
+            bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.anim.keyframe_insert(type='LocRotScale')
         bpy.ops.object.mode_set(mode='OBJECT')
 
