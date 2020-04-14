@@ -22,10 +22,10 @@ class BRGImporter:
         # create a basic mesh object
         self.mesh = bpy.data.meshes.new(self.file.nice_name)
         self.model = bpy.data.objects.new(self.file.nice_name, self.mesh)
-        bpy.context.scene.objects.link(self.model)
-        self.model.select = True
-        bpy.context.scene.objects.active = self.model
-        self.model.location = bpy.context.scene.cursor_location #Needs preference
+        bpy.context.scene.collection.objects.link(self.model)
+        self.model.select_set(True)
+        bpy.context.view_layer.objects.active = self.model
+        self.model.location = bpy.context.scene.cursor.location # Needs preference
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
@@ -34,8 +34,8 @@ class BRGImporter:
         '''close file reading and round up scene'''
         self.file.close()
         # Select the imported objects
-        self.model.select = True
-        bpy.context.scene.objects.active = self.model
+        self.model.select_set(True)
+        bpy.context.view_layer.objects.active = self.model
         if hasattr(self, "frames"):
             bpy.ops.object.shape_key_retime()
 
@@ -133,12 +133,12 @@ class BRGImporter:
             mesh.from_pydata(
                  [(0.0,0.0,0.0) for x in range(self.num_vertices)],
                  [], [(0,0,0) for x in range(self.num_faces)])
-            mesh.uv_textures.new("UVMap")
+            mesh.uv_layers.new(name="UVMap")
             print(mesh.shape_keys)
             # if this is an animation, add shapekey
             if hasattr(self, 'frames'):
                 for frame in range(1,self.frames+1):
-                    model.shape_key_add(str(frame))
+                    model.shape_key_add(name=str(frame))
 
                 mesh.shape_keys.animation_data_create()
                 action = bpy.data.actions.new(name="Shapekey Driver")
@@ -184,7 +184,8 @@ class BRGImporter:
                 face.vertices = file.read_face()
 
             # update the mesh data for uv loops.
-            mesh.update(calc_edges=True, calc_tessface=True)
+            mesh.update(calc_edges=True)
+            mesh.calc_loop_triangles()
             uv_loops = mesh.uv_layers[-1].data
             for loop in mesh.loops:
                 uv_loops[loop.index].uv = uvs[loop.vertex_index]
@@ -193,7 +194,8 @@ class BRGImporter:
                 vertmats = [file.read_short() for v in vertices]
 
         # update mesh data in memory
-        mesh.update(calc_edges=True, calc_tessface=True)
+        mesh.update(calc_edges=True)
+        mesh.calc_loop_triangles()
 
         file.skip(24)
         check_space = file.read_uint() # Unkown but important flag for edge cases
@@ -218,7 +220,7 @@ class BRGImporter:
         if self.props.has(MeshFlags.ATTACHPOINTS):
             self.read_attachpoints()
 
-        bpy.context.scene.objects.active = model
+        bpy.context.view_layer.objects.active = model
         #optional extra space in some edge cases, meaning unsure
         if not check_space and len_space > 0:
             anim_time_adujst = [file.read_float() for i in range(len_space)]
@@ -260,7 +262,7 @@ class BRGImporter:
             for bone in self.armature.pose.bones:
                 bone.custom_shape = shape
 
-        bpy.context.scene.objects.active = self.armature
+        bpy.context.view_layer.objects.active = self.armature
 
         # Read armature matrix data
         xs = [file.read_vec3() for i in range(self.num_matrix)]
@@ -280,6 +282,7 @@ class BRGImporter:
 
         if hasattr(self, 'frames'):
             bpy.ops.pose.select_all(action='SELECT')
+            bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.anim.keyframe_insert(type='LocRotScale')
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -337,7 +340,7 @@ class BRGImporter:
             node_texture.location = -300,350
 
             links = node_tree.links
-            link = links.new(node_texture.outputs[0], node_tree.nodes.get("Diffuse BSDF").inputs[0])
+            link = links.new(node_texture.outputs[0], node_tree.nodes.get("Principled BSDF").inputs[0])
 
         # optional sfx data
         if self.props.has(MatrFlags.SFX):

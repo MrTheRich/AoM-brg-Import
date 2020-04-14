@@ -224,16 +224,15 @@ def custome_shape():
     # set the material index for the sides
     for x,m in enumerate([0,0,1,1,2,2]):
         cus_obj.data.polygons[x].material_index = m
-    cus_obj.data.update(calc_edges=True, calc_tessface=True)
+    cus_obj.data.update(calc_edges=True)
+    mesh.calc_loop_triangles()
     cus_obj.use_fake_user = True
-    mesh.show_double_sided = True
 
     #create three materials for each axis
-    for i,c in enumerate([(1,0,0),(0,1,0),(0,0,1)]):
+    for i,c in enumerate([(1,0,0,1),(0,1,0,1),(0,0,1,1)]):
         mat = bpy.data.materials.new("_custom_shape." + str(i))
         mat.use_nodes = True
         mat.diffuse_color = c
-        mat.diffuse_intensity = 1.0
         mat.specular_color = (0,0,0)
         cus_obj.data.materials.append(mat)
 
